@@ -1,16 +1,3 @@
-*.json
-*.png
-*.csv
-*.css
-*.js
-*.pdf
-*.html
-*.sh
-*.asc
-
-downloaded_tweets_salva/
-experiments/__pycache__/
-experiments/tweets/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -69,5 +56,5 @@ docs/_build/
 # PyBuilder
 target/
 
-# swap files
+# swap files 
 *.sw*
