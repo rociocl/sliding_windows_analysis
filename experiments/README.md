@@ -35,11 +35,15 @@ Probar con el corpus total cual es el mejor tamaño de ventana
 
 **MIN**: 60 segundos - 1min
 **MAX**: 86400 segundos - 1día
+
 EXPERIMENTO # 3: Análisis de como K varía según las características del dataset
 ======
 
 EXPERIMENTO # 3.1: Variación del K según el conjunto de tópicos seleccionados
 ------
+
+python experiments.py experiment 10 1001 experiment_3/201103_meme ../Gnip-Trend-Detection/config_files/config_k_days.cfg
+
 
 EXPERIMENTO # 3.2: Variación del K según el segemento de tiempo en que se analicen los tópicos
 ------
