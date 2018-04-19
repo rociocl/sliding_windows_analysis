@@ -5,6 +5,9 @@ from path import Path
 import random
 import argparse
 from dateutil.parser import parse as dt_parser
+import os
+import matplotlib.pyplot as plt
+
 
 from dateutil.parser import parse as dt_parser20110307
 
@@ -50,13 +53,100 @@ def evaluation(input_folder, output_file):
         RR +=  RR_temp
     NR = REL - RR
     if not Path(output_file).exists():
-        header = 'folder,rel,rec,rr,nr,bri,ari,recobrado\n'
+        header = 'k,folder,rel,rec,rr,nr,bri,ari,recobrado,precision\n'
         with open(output_file, 'x') as out:
             out.write(header)
 
     with open(output_file, 'a') as out:
-        csv_output = f'{input_folder},{REL},{REC},{RR},{NR},{BRI},{ARI},{RR/float(REL):1.3f}\n'
+        csv_output = f'{Path(input_folder).basename()},{input_folder},{REL},{REC},{RR},{NR},{BRI},{ARI},{RR/float(REL):1.3f},{RR/float(RR + BRI):1.3f}\n'
         out.write(csv_output)
+
+def f1(precision,recall):
+    return 2*(precision*recall)/(precision+recall)
+
+def f2(precision, recall):
+    return 5*(precision*recall)/4*(precision+recall)
+
+
+def eval_file(eval_file):
+    csv = pandas.read_csv(eval_file)
+    ks = csv['k']
+    pre = csv['precision']
+    rca = csv['recobrado']
+    f1_values = f1(pre,rca)
+    f2_values = f2(pre,rca)
+    max_index = f1_values.argmax()
+    return {'file': eval_file, 'precision': pre, 'recall': rca, 'f1': f1_values, 'f2': f2_values, 'k':ks, 'better_k':ks[max_index], 'better_index':max_index}
+
+def evaluation_analysis(root_dir='experiment_2/'):
+    eval_csvs = []
+    for root, subdirs, files in os.walk(root_dir):
+        eval_csvs.extend([os.path.join(root, x) for x in files if x.startswith('evaluation.csv')])
+    cols = 2 if len(eval_csvs)>1 else 1
+    rows = len(eval_csvs)/cols if len(eval_csvs)%cols == 0 else len(eval_csvs)/cols +1
+    fig1 = plt.figure()
+    fig2 = plt.figure()
+    fig3 = plt.figure()
+    box = {'facecolor' : '.75', 'edgecolor' : 'k','boxstyle': 'round'}
+
+    for i, csv in enumerate(eval_csvs):
+
+        title = Path(csv).dirname().split('/')
+        title= f'{title[len(title)-3]}: {title[len(title)-2]}'
+
+        analysis = eval_file(csv)
+        # F1 and F2 plot
+        ax1 = fig1.add_subplot(rows, cols, i + 1)
+        ax1.set_title(title)
+
+        ax1.plot(analysis['k'],analysis['f1'], 'm', label='f1', alpha=0.5)
+        ax1.plot(analysis['k'],analysis['f2'], 'g', label='f2', alpha=0.5)
+        ax1.axvline(x=analysis['better_k'], color='k', label='k')
+        ax1.set_ylim(0,3)
+        ax1.text(analysis['better_k'], 0, str(analysis['better_k']), bbox = box, horizontalalignment='center')
+
+
+        # Pre and Rca plot
+        ax2 = fig2.add_subplot(rows, cols, i + 1)
+        ax2.set_title(title)
+
+        ax2.plot(analysis['k'],analysis['recall'], 'b', label='recall', alpha=0.5)
+        ax2.plot(analysis['k'],analysis['precision'], 'r', label='precision', alpha=0.5)
+        ax2.axvline(x=analysis['better_k'], color='k')
+        ax2.set_ylim(0,1.2)
+        ax2.text(analysis['better_k'], 0, str(analysis['better_k']), bbox = box, horizontalalignment='center')
+
+
+        # Pre vs. Rca curve plot
+        ax3 = fig3.add_subplot(rows, cols, i + 1)
+        ax3.set_title(title)
+
+        ax3.plot(analysis['recall'],analysis['precision'], '.--b', label='pres vs. recall', alpha=0.5)
+        ax3.set_ylim(0,1.2)
+        ax3.set_xlim(0,1)
+
+    pos = 'lower center' if len(eval_csvs) ==1 or len(eval_csvs)%2 == 0 else 'lower right'
+
+    fig1.subplots_adjust(wspace=0.3, hspace=1.0)
+    fig1.legend(['f1 score', 'f2 score', 'better k' ], loc=pos, ncol=3)
+    fig1.savefig(Path(root_dir)/Path('eval_fscores.png'))
+
+    fig2.subplots_adjust(wspace=0.3, hspace=1.0)
+    fig2.legend(['recall', 'precision'], loc=pos, ncol=2)
+    fig2.savefig(Path(root_dir)/Path('eval_pre&rca.png'))
+
+    fig3.subplots_adjust(wspace=0.8, hspace=1.0)
+    fig3.legend(['recall(x) precision(y) curve'], loc=pos, ncol=1)
+    fig3.savefig(Path(root_dir)/Path('eval_preVSrca.png'))
+
+
+# def update_evaluation(input_file):
+#     csv = pandas.read_csv(input_file, sep=',')
+#     rr = csv['rr']
+#     bri = csv['bri']
+#     pre = rr / (rr+bri)
+#     csv.insert(8, 'precision', pre)
+#     csv.to_csv(input_file, columns=['folder','rel','rec','rr','nr','bri','ari','recobrado','precision' ], float_format='%1.3f', index=False)
 
 
 def get_trends(folder, output_file):
@@ -92,21 +182,5 @@ def get_trends(folder, output_file):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser("Utils functions for trend detection system")
-    parser.add_argument('-f','--function',dest='function', default= '', help="function to be used")
-    args = parser.parse_args()
-
-    if args.function == 'trends':
-        # EXPERIMENT_1
-        # get_trends('experiment_1/20110301', 'experiment_1/trend_sample.csv', 'experiment_1/20110301_trends.json')
-        # get_trends('experiment_1/20110302', 'experiment_1/trend_sample.csv', 'experiment_1/20110302_trends.json')
-        # get_trends('experiment_1/20110303', 'experiment_1/trend_sample.csv', 'experiment_1/20110303_trends.json')
-        # get_trends('experiment_1/20110304', 'experiment_1/trend_sample.csv', 'experiment_1/20110304_trends.json')
-        # get_trends('experiment_1/20110305', 'experiment_1/trend_sample.csv', 'experiment_1/20110305_trends.json')
-        # get_trends('experiment_1/20110306', 'experiment_1/trend_sample.csv', 'experiment_1/20110306_trends.json')
-        # get_trends('experiment_1/20110307', 'experiment_1/trend_sample.csv', 'experiment_1/20110307_trends.json')
-        pass
-
-
-    if args.function == 'eval':
-        evaluation('experiment_2/201103/k_values/10', 'experiment_2/201103/')
+    import fire
+    fire.Fire()
