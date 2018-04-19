@@ -45,10 +45,14 @@ def build_intervals(data,k):
         intervals[-1].append(data[-1])
     return intervals,interv
 
-def process(k,path='.',out='.'):
+def process(k,path='.',out='.', min_interval=60):
     k+=1
     data=read_all(path)
     data,interv=build_intervals(data,k)
+
+    if interv.total_seconds() < min_interval:
+        return False
+
     beg = data[0][0]["postedTime_t"]
     names={}
     cont=[]
@@ -76,7 +80,7 @@ def process(k,path='.',out='.'):
             for n,j in enumerate(inf):
                 strt=[(beg+n*interv).strftime(tformat2),str(int(interv.total_seconds())),str(j),get_topic_name(key)]
                 f.write(','.join(strt)+'\n')
-
+    return True
 
 if __name__ == '__main__':
     import fire
